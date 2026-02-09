@@ -21,6 +21,22 @@ nav {
 }
 .logo img{
     width: 150px;
+    animation: move 2s linear infinite;
+}
+@keyframes move{
+    0%{
+        transform: scale(1);
+        opacity: 80%;
+    }
+    50%{
+        transform: scale(1.2);
+        opacity: 100%;
+
+    }
+    100%{
+        transform: scale(1);
+        opacity: 80%;
+    }
 }
 nav ul {
     list-style: none;
