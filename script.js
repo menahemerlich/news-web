@@ -1,5 +1,4 @@
-const API_KEY = 'c064c8d4f20e5c077a085b2e40e5005a';
-const BASE_URL = 'https://gnews.io/api/v4/top-headlines?category=general&lang=he&country=il&max=10';
+const BASE_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.jdn.co.il/category/j_world/rss';
 const appContainer = document.getElementById('app-container');
 const navHome = document.getElementById('nav-home');
 const navCreate = document.getElementById('nav-create');
@@ -20,56 +19,77 @@ function showCreatePage() {
                 
                 <label>שם מחבר</label>
                 <input type="text" id="author" required>
-                
+
+                <label>תקציר</label>
+                <input type="text" id="description" required>
+
+                <label>תמונה</label>
+                <input type="text" id="image" required>
+
                 <label>תיאור</label> 
-                <textarea id="description" required></textarea>
+                <textarea id="content" required></textarea>
                 
                 <button type="submit">שליחה</button> 
             </form>
         </section>
     `;
+    setupCreateForm()
 }
 
 navHome.addEventListener('click', (e) => {
     e.preventDefault();
     showHomePage();
 });
-
 navCreate.addEventListener('click', (e) => {
     e.preventDefault();
     showCreatePage();
 });
-
 showHomePage();
 
+function stripHtml(html) {
+    if (!html) return '';
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+}
+
+
 async function fetchNews() {
-
-
     const storageKey = 'news_cache';
-
     const cachedData = localStorage.getItem(storageKey);
 
     if (cachedData && cachedData !== "undefined") {
+        const news = JSON.parse(cachedData);
+
         try {
-            const news = JSON.parse(cachedData);
             renderNewsCards(news);
             return;
-        } catch (e) {
-            console.log(10);
+        } catch {
             console.error("המידע ב-LocalStorage פגום, מנקה אותו...");
             localStorage.removeItem(storageKey);
         }
     }
-
     console.log("מבצע פנייה ל-API...");
     try {
-        const response = await fetch(`${BASE_URL}&apikey=${API_KEY}`);
+        const response = await fetch(BASE_URL);
         const data = await response.json();
+        console.log(data.items);
+        
 
-        const articles = data.articles;
+        const articles = data.items.map(item => ({
+            title: item.title,
+            image: item.enclosure.link,
+            description: stripHtml(item.description),
+            content: stripHtml(item.content),
+            source: { name: item.author },
+            publishedAt: item.pubDate,
+            url: item.link
+        }));
+
+
+
 
         localStorage.setItem(storageKey, JSON.stringify(articles));
-
         renderNewsCards(articles);
     } catch (error) {
         console.error("שגיאה בטעינת החדשות:", error);
@@ -80,7 +100,6 @@ async function fetchNews() {
 function renderNewsCards(articles) {
     appContainer.innerHTML = '<section class="news-grid"></section>';
     const grid = appContainer.querySelector('.news-grid');
-
     articles.forEach((article, index) => {
         const card = document.createElement('div');
         card.className = 'news-card';
@@ -89,20 +108,16 @@ function renderNewsCards(articles) {
             <div class="card-content">
                 <p class="author">${article.source.name}</p>
                 <h3>${article.title}</h3>
-                <button class="read-more" data-index="${index}">קרא עוד</button>
             </div>
         `;
-
-        card.querySelector('.read-more').addEventListener('click', () => {
+        card.addEventListener('click', () => {
             showExpandedNews(article);
         });
-
         grid.appendChild(card);
     });
 }
 
 function showExpandedNews(article) {
-    console.log(article);
 
     appContainer.innerHTML = `
         <section class="expanded-news">
@@ -134,21 +149,22 @@ function setupCreateForm() {
 
         const newArticle = {
             title: document.getElementById('title').value,
-            author: document.getElementById('author').value,
+            source: {
+                name: document.getElementById('author').value,
+            },
             description: document.getElementById('description').value,
-            urlToImage: 'https://via.placeholder.com/150',
-            content: document.getElementById('description').value,
+            image: document.getElementById('image').value,
+            content: document.getElementById('content').value,
             publishedAt: new Date().toISOString()
         };
 
         const storageKey = 'news_cache';
+
         const existingNews = JSON.parse(localStorage.getItem(storageKey)) || [];
-
         existingNews.unshift(newArticle);
-
         localStorage.setItem(storageKey, JSON.stringify(existingNews));
-
         alert('הסיפור פורסם בהצלחה!');
         showHomePage();
     });
 }
+
