@@ -19,7 +19,9 @@ nav {
     max-width: 1000px;
     margin: 0 auto;
 }
-
+.logo img{
+    width: 150px;
+}
 nav ul {
     list-style: none;
     display: flex;
